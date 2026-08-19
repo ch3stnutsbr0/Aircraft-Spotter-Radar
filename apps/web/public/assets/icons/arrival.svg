@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-labelledby="title desc">
+  <title id="title">Arrival</title>
+  <desc id="desc">A geometric aircraft descending toward a runway</desc>
+  <path fill="#58C4C9" d="M4.2 6.1 10.7 13l4.8-1.2 9.3 6.1-2.7 2.6-8.2-3.2-3.5 2.2-2.1-1.1 1.3-3.7-6.8-5.8Z"/>
+  <path fill="none" stroke="#58C4C9" stroke-linecap="round" stroke-width="2" d="m3.7 3.8 3.1 3.3M4 26.2h24"/>
+  <path fill="#58C4C9" d="m25.5 23.2 2.5 3-2.5 3Z"/>
+</svg>
