@@ -1,4 +1,5 @@
-import type { AircraftMovement, MovementType } from "@spotter/domain";
+import type { MovementType } from "@spotter/domain";
+import type { ScoredAircraftMovement } from "@spotter/ranking";
 import { getSpotterScore } from "@spotter/ranking";
 
 export type MovementFilter = "ALL" | MovementType;
@@ -33,10 +34,10 @@ export function formatTime(timestamp: string): string {
   }).format(new Date(timestamp));
 }
 
-export const routeLabel = (movement: AircraftMovement) =>
+export const routeLabel = (movement: ScoredAircraftMovement) =>
   `${movement.flight.origin.code} → ${movement.flight.destination.code}`;
 
-const searchableText = (movement: AircraftMovement): string =>
+const searchableText = (movement: ScoredAircraftMovement): string =>
   [
     movement.aircraft.registration,
     movement.aircraft.type,
@@ -49,9 +50,9 @@ const searchableText = (movement: AircraftMovement): string =>
   ].filter(Boolean).join(" ").toLowerCase();
 
 export function filterAndSortMovements(
-  movements: AircraftMovement[],
+  movements: ScoredAircraftMovement[],
   filters: SpotlightFilters,
-): AircraftMovement[] {
+): ScoredAircraftMovement[] {
   const search = filters.search.trim().toLowerCase();
   const route = filters.route.trim().toLowerCase();
 
@@ -60,7 +61,10 @@ export function filterAndSortMovements(
     if (filters.aircraftFamilies.length && !filters.aircraftFamilies.includes(movement.aircraft.family)) return false;
     if (filters.airlines.length && !filters.airlines.includes(movement.flight.airline.code)) return false;
     if (route && !movement.flight.origin.code.toLowerCase().includes(route) && !movement.flight.destination.code.toLowerCase().includes(route)) return false;
-    if (filters.interestingOnly && movement.spotter.tags.length === 0) return false;
+    if (
+      filters.interestingOnly
+      && movement.spotterInterest.classification === "ROUTINE"
+    ) return false;
     return !search || searchableText(movement).includes(search);
   });
 

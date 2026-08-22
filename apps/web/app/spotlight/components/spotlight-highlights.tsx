@@ -1,4 +1,4 @@
-import type { AircraftMovement } from "@spotter/domain";
+import type { ScoredAircraftMovement } from "@spotter/ranking";
 import { MovementTypeIndicator } from "./movement-type-indicator";
 import { RunwayPrediction } from "./runway-prediction";
 import { TagList } from "./tag-list";
@@ -6,8 +6,8 @@ import { formatTime, routeLabel } from "../lib/spotlight";
 import styles from "../spotlight.module.css";
 
 export function SpotlightHighlights({ movements, onSelect }: {
-  movements: AircraftMovement[];
-  onSelect: (movement: AircraftMovement) => void;
+  movements: ScoredAircraftMovement[];
+  onSelect: (movement: ScoredAircraftMovement) => void;
 }) {
   return (
     <section className={styles.section} aria-labelledby="spotlight-heading">
@@ -15,7 +15,7 @@ export function SpotlightHighlights({ movements, onSelect }: {
         <div><p className={styles.eyebrow}>Ranked for spotters</p><h2 id="spotlight-heading">Today’s Spotlight</h2></div>
         <p>Highest-interest movements in the selected time window.</p>
       </div>
-      <div className={styles.highlightGrid}>
+      {movements.length ? <div className={styles.highlightGrid}>
         {movements.map((movement, index) => (
           <button className={styles.highlightCard} key={movement.id} onClick={() => onSelect(movement)} type="button">
             <div className={styles.highlightTopline}><span>{formatTime(movement.estimatedTime)}</span><span>0{index + 1}</span></div>
@@ -29,10 +29,16 @@ export function SpotlightHighlights({ movements, onSelect }: {
             <div className={styles.highlightRunway}>
               <RunwayPrediction prediction={movement.runwayPrediction} />
             </div>
-            <div className={styles.highlightTags}><TagList tags={movement.spotter.tags} /></div>
+            <div className={styles.highlightTags}>
+              <TagList tags={movement.spotterInterest.reasons} />
+            </div>
           </button>
         ))}
-      </div>
+      </div> : (
+        <div className={styles.spotlightEmpty}>
+          No movements currently meet the v0.1 Spotlight threshold.
+        </div>
+      )}
     </section>
   );
 }

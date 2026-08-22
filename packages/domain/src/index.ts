@@ -2,12 +2,24 @@ export type MovementType = "ARRIVAL" | "DEPARTURE";
 
 export type AircraftCategory = "NARROWBODY" | "WIDEBODY" | "REGIONAL";
 
-export type SpotterTag =
+export type AircraftNotabilityTag =
   | "SPECIAL_LIVERY"
-  | "RARE_AIRCRAFT_TYPE"
-  | "RARE_AIRLINE"
-  | "WIDEBODY"
-  | "LONG_HAUL";
+  | "RETRO_LIVERY"
+  | "ANNIVERSARY_LIVERY"
+  | "COMMEMORATIVE_LIVERY"
+  | "PROMOTIONAL_LIVERY"
+  | "ALLIANCE_LIVERY"
+  | "ONE_OFF_LIVERY"
+  | "FIRST_OF_TYPE_FOR_AIRLINE"
+  | "LAST_OF_TYPE_FOR_AIRLINE"
+  | "FIRST_DELIVERED_TO_AIRLINE"
+  | "LAST_DELIVERED_TO_AIRLINE"
+  | "FIRST_PRODUCTION_AIRFRAME"
+  | "LAST_PRODUCTION_AIRFRAME"
+  | "PROTOTYPE"
+  | "TEST_AIRCRAFT"
+  | "HISTORICALLY_SIGNIFICANT_AIRFRAME"
+  | "OTHER_NOTABLE_HISTORY";
 
 export interface Airport {
   code: string;
@@ -40,8 +52,41 @@ export interface Flight {
   destination: Airport;
 }
 
-export interface SpotterMetadata {
-  tags: SpotterTag[];
+export interface AircraftNotabilityFacts {
+  tags: AircraftNotabilityTag[];
+  curatedScores?: Partial<Record<
+    "HISTORICALLY_SIGNIFICANT_AIRFRAME" | "OTHER_NOTABLE_HISTORY",
+    number
+  >>;
+}
+
+export interface GlobalTypeRarityFacts {
+  variant: string;
+  activeGlobalFleetSize: number;
+}
+
+export interface LocalTypeRarityFacts {
+  airportCode: string;
+  variant: string;
+  historicalWindowDays: number;
+  typeMovements: number;
+  totalMovements: number;
+  dataQuality: "SUFFICIENT" | "INSUFFICIENT";
+}
+
+export interface RegistrationRarityFacts {
+  airportCode: string;
+  registration: string | null;
+  historicalWindowDays: number;
+  visits: number;
+  daysSinceLastVisit: number | null;
+}
+
+export interface SpotterInterestFacts {
+  notability: AircraftNotabilityFacts;
+  globalTypeRarity: GlobalTypeRarityFacts;
+  localTypeRarity: LocalTypeRarityFacts;
+  registrationRarity: RegistrationRarityFacts;
 }
 
 export type RunwayPredictionStatus = "PREDICTED" | "LIKELY" | "CONFIRMED";
@@ -104,6 +149,6 @@ export interface AircraftMovement {
   estimatedTime: string;
   flight: Flight;
   aircraft: Aircraft;
-  spotter: SpotterMetadata;
+  spotterFacts: SpotterInterestFacts;
   runwayPrediction?: RunwayPrediction;
 }

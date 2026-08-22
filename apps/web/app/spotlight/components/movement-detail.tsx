@@ -1,14 +1,17 @@
 import { useEffect } from "react";
-import type { AircraftMovement } from "@spotter/domain";
-import { SPOTTER_TAG_LABELS } from "@spotter/ranking";
+import {
+  SPOTTER_REASON_LABELS,
+  type ScoredAircraftMovement,
+} from "@spotter/ranking";
 import { MovementTypeIndicator } from "./movement-type-indicator";
 import { RunwayPrediction } from "./runway-prediction";
+import { SpotterInterestDebug } from "./spotter-interest-debug";
 import { TagList } from "./tag-list";
 import { formatTime, routeLabel } from "../lib/spotlight";
 import styles from "../spotlight.module.css";
 
 export function MovementDetail({ movement, onClose }: {
-  movement: AircraftMovement;
+  movement: ScoredAircraftMovement;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -31,7 +34,9 @@ export function MovementDetail({ movement, onClose }: {
         <div className={styles.detailRunway}>
           <RunwayPrediction prediction={movement.runwayPrediction} showSource />
         </div>
-        <div className={styles.detailTags}><TagList tags={movement.spotter.tags} /></div>
+        <div className={styles.detailTags}>
+          <TagList tags={movement.spotterInterest.reasons} />
+        </div>
         <dl className={styles.detailGrid}>
           <div><dt>Airline</dt><dd>{movement.flight.airline.name}</dd></div>
           <div><dt>Flight</dt><dd>{movement.flight.number}</dd></div>
@@ -49,8 +54,15 @@ export function MovementDetail({ movement, onClose }: {
         </dl>
         <div className={styles.whyHighlighted}>
           <span>Why it’s highlighted</span>
-          <p>{movement.spotter.tags.length ? movement.spotter.tags.map((tag) => SPOTTER_TAG_LABELS[tag]).join(" · ") : "This is routine traffic with no special spotter-interest flags."}</p>
+          <p>{movement.spotterInterest.reasons.length
+            ? movement.spotterInterest.reasons
+                .map((reason) => SPOTTER_REASON_LABELS[reason])
+                .join(" · ")
+            : "This is routine traffic with no v0.1 spotter-interest reasons."}</p>
         </div>
+        {process.env.NODE_ENV === "development" && (
+          <SpotterInterestDebug result={movement.spotterInterest} />
+        )}
       </aside>
     </div>
   );

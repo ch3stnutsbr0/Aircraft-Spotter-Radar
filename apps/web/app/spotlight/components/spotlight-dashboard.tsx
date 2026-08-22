@@ -1,8 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { AircraftMovement, AirportStatusSnapshot } from "@spotter/domain";
-import { getSpotlightMovements } from "@spotter/ranking";
+import type { AirportStatusSnapshot } from "@spotter/domain";
+import {
+  getSpotlightMovements,
+  type ScoredAircraftMovement,
+} from "@spotter/ranking";
 import { SpotlightHeader } from "./spotlight-header";
 import { SpotlightHighlights } from "./spotlight-highlights";
 import { FilterBar } from "./filter-bar";
@@ -19,12 +22,12 @@ export function SpotlightDashboard({
   movements,
   airportStatus,
 }: {
-  movements: AircraftMovement[];
+  movements: ScoredAircraftMovement[];
   airportStatus: AirportStatusSnapshot;
 }) {
   const [filters, setFilters] = useState<SpotlightFilters>(defaultFilters);
-  const [selected, setSelected] = useState<AircraftMovement | null>(null);
-  const spotlight = useMemo(() => getSpotlightMovements(movements, 4), [movements]);
+  const [selected, setSelected] = useState<ScoredAircraftMovement | null>(null);
+  const spotlight = useMemo(() => getSpotlightMovements(movements), [movements]);
   const filtered = useMemo(() => filterAndSortMovements(movements, filters), [movements, filters]);
   const aircraftOptions = useMemo(() => [...new Set(movements.map((item) => item.aircraft.family))].sort(), [movements]);
   const airlineOptions = useMemo(() => Array.from(new Map(movements.map((item) => [item.flight.airline.code, item.flight.airline])).values()).sort((a, b) => a.name.localeCompare(b.name)), [movements]);
@@ -35,7 +38,7 @@ export function SpotlightDashboard({
     <main className={styles.pageShell}>
       <SpotlightHeader
         total={movements.length}
-        interesting={movements.filter((item) => item.spotter.tags.length).length}
+        interesting={movements.filter((item) => item.spotterInterest.classification !== "ROUTINE").length}
         spotlight={spotlight.length}
         airportStatus={airportStatus}
       />

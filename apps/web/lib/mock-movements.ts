@@ -6,8 +6,12 @@ import type {
   MovementType,
   RunwayPrediction,
   RunwayPredictionStatus,
-  SpotterTag,
 } from "@spotter/domain";
+import {
+  spotterInterestService,
+  type ScoredAircraftMovement,
+} from "@spotter/ranking";
+import { buildMockSpotterFacts } from "./mock-spotter-facts";
 
 const airportCities: Record<string, string> = {
   AMS: "Amsterdam", ANC: "Anchorage", ATL: "Atlanta", BOS: "Boston",
@@ -69,46 +73,45 @@ type Seed = [
   category: AircraftCategory,
   registration: string | null,
   livery?: string,
-  tags?: SpotterTag[],
 ];
 
 const seeds: Seed[] = [
   ["DEPARTURE", "14:02", "14:05", "DL1482", "DL", "ATL", "MCO", "A321-200", "A320 Family", "NARROWBODY", "N347DN"],
   ["ARRIVAL", "14:07", "14:11", "WN2187", "WN", "DAL", "ATL", "B737 MAX 8", "B737", "NARROWBODY", "N8840Q"],
   ["ARRIVAL", "14:12", "14:09", "9E5214", "9E", "RDU", "ATL", "CRJ-900", "Regional Jet", "REGIONAL", "N302PQ"],
-  ["DEPARTURE", "14:18", "14:18", "DL295", "DL", "ATL", "HND", "A350-900", "A350", "WIDEBODY", "N502DN", undefined, ["WIDEBODY", "LONG_HAUL"]],
+  ["DEPARTURE", "14:18", "14:18", "DL295", "DL", "ATL", "HND", "A350-900", "A350", "WIDEBODY", "N502DN"],
   ["ARRIVAL", "14:24", "14:31", "DL1196", "DL", "LAX", "ATL", "A321neo", "A320 Family", "NARROWBODY", "N528DN"],
-  ["ARRIVAL", "14:29", "14:27", "F91470", "F9", "DEN", "ATL", "A320neo", "A320 Family", "NARROWBODY", "N395FR", "Virginia the Wolf", ["SPECIAL_LIVERY"]],
+  ["ARRIVAL", "14:29", "14:27", "F91470", "F9", "DEN", "ATL", "A320neo", "A320 Family", "NARROWBODY", "N395FR", "Virginia the Wolf"],
   ["DEPARTURE", "14:35", "14:39", "WN1438", "WN", "ATL", "HOU", "B737-800", "B737", "NARROWBODY", "N8551Q"],
-  ["ARRIVAL", "14:41", "14:43", "5X1264", "5X", "SDF", "ATL", "B767-300F", "B767", "WIDEBODY", "N353UP", undefined, ["WIDEBODY"]],
+  ["ARRIVAL", "14:41", "14:43", "5X1264", "5X", "SDF", "ATL", "B767-300F", "B767", "WIDEBODY", "N353UP"],
   ["DEPARTURE", "14:47", "14:47", "DL1640", "DL", "ATL", "MSP", "A321-200", "A320 Family", "NARROWBODY", "N365DN"],
   ["ARRIVAL", "14:53", "14:58", "DL2011", "DL", "JFK", "ATL", "B737-900ER", "B737", "NARROWBODY", "N932DZ"],
-  ["ARRIVAL", "14:59", "15:03", "QR755", "QR", "DOH", "ATL", "A350-1000", "A350", "WIDEBODY", "A7-ANJ", undefined, ["RARE_AIRLINE", "WIDEBODY", "LONG_HAUL"]],
-  ["DEPARTURE", "15:05", "15:08", "DL72", "DL", "ATL", "AMS", "A330-300", "A330", "WIDEBODY", "N820NW", undefined, ["WIDEBODY", "LONG_HAUL"]],
+  ["ARRIVAL", "14:59", "15:03", "QR755", "QR", "DOH", "ATL", "A350-1000", "A350", "WIDEBODY", "A7-ANJ"],
+  ["DEPARTURE", "15:05", "15:08", "DL72", "DL", "ATL", "AMS", "A330-300", "A330", "WIDEBODY", "N820NW"],
   ["ARRIVAL", "15:11", "15:10", "9E4872", "9E", "VPS", "ATL", "CRJ-900", "Regional Jet", "REGIONAL", "N181PQ"],
-  ["ARRIVAL", "15:18", "15:22", "LH444", "LH", "FRA", "ATL", "B747-8", "B747", "WIDEBODY", "D-ABYT", undefined, ["RARE_AIRCRAFT_TYPE", "RARE_AIRLINE", "WIDEBODY", "LONG_HAUL"]],
+  ["ARRIVAL", "15:18", "15:22", "LH444", "LH", "FRA", "ATL", "B747-8I", "B747", "WIDEBODY", "D-ABYT"],
   ["DEPARTURE", "15:24", "15:26", "NK1078", "NK", "ATL", "FLL", "A320-200", "A320 Family", "NARROWBODY", "N678NK"],
-  ["ARRIVAL", "15:31", "15:35", "AF30", "AF", "CDG", "ATL", "A350-900", "A350", "WIDEBODY", "F-HUVG", undefined, ["RARE_AIRLINE", "WIDEBODY", "LONG_HAUL"]],
+  ["ARRIVAL", "15:31", "15:35", "AF30", "AF", "CDG", "ATL", "A350-900", "A350", "WIDEBODY", "F-HUVG"],
   ["DEPARTURE", "15:38", "15:41", "DL1092", "DL", "ATL", "BOS", "A220-300", "A220", "NARROWBODY", "N306DU"],
   ["ARRIVAL", "15:44", "15:42", "AA1502", "AA", "DFW", "ATL", "A321-200", "A320 Family", "NARROWBODY", "N167AN"],
-  ["DEPARTURE", "15:50", "15:55", "DL82", "DL", "ATL", "CDG", "A350-900", "A350", "WIDEBODY", "N509DN", "Team USA", ["SPECIAL_LIVERY", "WIDEBODY", "LONG_HAUL"]],
+  ["DEPARTURE", "15:50", "15:55", "DL82", "DL", "ATL", "CDG", "A350-900", "A350", "WIDEBODY", "N509DN", "Team USA"],
   ["ARRIVAL", "15:57", "16:01", "OO5508", "OO", "ORD", "ATL", "E175", "Regional Jet", "REGIONAL", "N143SY"],
-  ["ARRIVAL", "16:04", "16:07", "KL621", "KL", "AMS", "ATL", "B787-10", "B787", "WIDEBODY", "PH-BKA", undefined, ["RARE_AIRLINE", "WIDEBODY", "LONG_HAUL"]],
+  ["ARRIVAL", "16:04", "16:07", "KL621", "KL", "AMS", "ATL", "B787-10", "B787", "WIDEBODY", "PH-BKA"],
   ["DEPARTURE", "16:10", "16:13", "DL1754", "DL", "ATL", "TPA", "B757-200", "B757", "NARROWBODY", "N6714Q"],
   ["ARRIVAL", "16:17", "16:15", "B61097", "B6", "BOS", "ATL", "A220-300", "A220", "NARROWBODY", "N3158J"],
-  ["ARRIVAL", "16:24", "16:30", "BA227", "BA", "LHR", "ATL", "B777-200ER", "B777", "WIDEBODY", "G-YMMR", undefined, ["RARE_AIRLINE", "WIDEBODY", "LONG_HAUL"]],
+  ["ARRIVAL", "16:24", "16:30", "BA227", "BA", "LHR", "ATL", "B777-200ER", "B777", "WIDEBODY", "G-YMMR"],
   ["DEPARTURE", "16:31", "16:34", "WN1963", "WN", "ATL", "BWI", "B737-700", "B737", "NARROWBODY", "N7828A"],
-  ["ARRIVAL", "16:38", "16:42", "KE35", "KE", "ICN", "ATL", "B747-8", "B747", "WIDEBODY", "HL7630", undefined, ["RARE_AIRCRAFT_TYPE", "RARE_AIRLINE", "WIDEBODY", "LONG_HAUL"]],
+  ["ARRIVAL", "16:38", "16:42", "KE35", "KE", "ICN", "ATL", "B747-8I", "B747", "WIDEBODY", "HL7630"],
   ["DEPARTURE", "16:46", "16:48", "DL1559", "DL", "ATL", "SLC", "A321neo", "A320 Family", "NARROWBODY", null],
-  ["ARRIVAL", "16:53", "16:57", "AC1307", "AC", "YYZ", "ATL", "A220-300", "A220", "NARROWBODY", "C-GMZN", undefined, ["RARE_AIRLINE"]],
+  ["ARRIVAL", "16:53", "16:57", "AC1307", "AC", "YYZ", "ATL", "A220-300", "A220", "NARROWBODY", "C-GMZN"],
   ["DEPARTURE", "17:01", "17:05", "DL2136", "DL", "ATL", "SAV", "B717-200", "B717", "NARROWBODY", "N955AT"],
   ["ARRIVAL", "17:08", "17:11", "YX4386", "YX", "LGA", "ATL", "E175", "Regional Jet", "REGIONAL", "N126HQ"],
-  ["DEPARTURE", "17:15", "17:18", "TK32", "TK", "ATL", "IST", "B787-9", "B787", "WIDEBODY", "TC-LLL", undefined, ["RARE_AIRLINE", "WIDEBODY", "LONG_HAUL"]],
-  ["ARRIVAL", "17:22", "17:19", "DL842", "DL", "SEA", "ATL", "A330-300", "A330", "WIDEBODY", "N810NW", undefined, ["WIDEBODY"]],
+  ["DEPARTURE", "17:15", "17:18", "TK32", "TK", "ATL", "IST", "B787-9", "B787", "WIDEBODY", "TC-LLL"],
+  ["ARRIVAL", "17:22", "17:19", "DL842", "DL", "SEA", "ATL", "A330-300", "A330", "WIDEBODY", "N810NW"],
   ["DEPARTURE", "17:30", "17:33", "UA1892", "UA", "ATL", "DEN", "B737 MAX 9", "B737", "NARROWBODY", "N37509"],
-  ["ARRIVAL", "17:38", "17:42", "AM3270", "AM", "MEX", "ATL", "B737 MAX 8", "B737", "NARROWBODY", "XA-MAY", undefined, ["RARE_AIRLINE"]],
-  ["DEPARTURE", "17:46", "17:52", "DL30", "DL", "ATL", "LHR", "A330-900neo", "A330", "WIDEBODY", "N411DX", undefined, ["WIDEBODY", "LONG_HAUL"]],
-  ["ARRIVAL", "17:54", "17:58", "GTI8156", "GTI", "ANC", "ATL", "B747-8F", "B747", "WIDEBODY", "N859GT", "Polar Air Cargo hybrid", ["RARE_AIRCRAFT_TYPE", "RARE_AIRLINE", "WIDEBODY"]],
+  ["ARRIVAL", "17:38", "17:42", "AM3270", "AM", "MEX", "ATL", "B737 MAX 8", "B737", "NARROWBODY", "XA-MAY"],
+  ["DEPARTURE", "17:46", "17:52", "DL30", "DL", "ATL", "LHR", "A330-900neo", "A330", "WIDEBODY", "N411DX"],
+  ["ARRIVAL", "17:54", "17:58", "GTI8156", "GTI", "ANC", "ATL", "B747-8F", "B747", "WIDEBODY", "N859GT", "Polar Air Cargo hybrid"],
 ];
 
 type PredictionSeed = [
@@ -147,9 +150,9 @@ const toRunwayPrediction = (
 
 const atlTimestamp = (time: string) => `2026-08-19T${time}:00-04:00`;
 
-export const mockMovements: AircraftMovement[] = seeds.map((seed, index) => {
+export const mockMovementInputs: AircraftMovement[] = seeds.map((seed, index) => {
   const [movementType, scheduled, estimated, flightNumber, airlineCode,
-    origin, destination, type, family, category, registration, livery, tags] = seed;
+    origin, destination, type, family, category, registration, livery] = seed;
 
   return {
     id: `atl-${String(index + 1).padStart(3, "0")}`,
@@ -169,7 +172,10 @@ export const mockMovements: AircraftMovement[] = seeds.map((seed, index) => {
       registration,
       livery: { name: livery ?? "Standard fleet livery", isSpecial: Boolean(livery) },
     },
-    spotter: { tags: tags ?? [] },
+    spotterFacts: buildMockSpotterFacts({ variant: type, registration }),
     runwayPrediction: toRunwayPrediction(predictionSeeds[index]),
   };
 });
+
+export const mockMovements: ScoredAircraftMovement[] =
+  spotterInterestService.scoreMovements(mockMovementInputs);

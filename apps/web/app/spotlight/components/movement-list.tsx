@@ -1,4 +1,4 @@
-import type { AircraftMovement } from "@spotter/domain";
+import type { ScoredAircraftMovement } from "@spotter/ranking";
 import { MovementTypeIndicator } from "./movement-type-indicator";
 import { RunwayPrediction } from "./runway-prediction";
 import { TagList } from "./tag-list";
@@ -6,8 +6,8 @@ import { formatTime, routeLabel } from "../lib/spotlight";
 import styles from "../spotlight.module.css";
 
 export function MovementList({ movements, onSelect }: {
-  movements: AircraftMovement[];
-  onSelect: (movement: AircraftMovement) => void;
+  movements: ScoredAircraftMovement[];
+  onSelect: (movement: ScoredAircraftMovement) => void;
 }) {
   if (!movements.length) return <div className={styles.emptyState}><span aria-hidden="true">○</span><h3>No movements match this view</h3><p>Try removing a filter or using a broader search.</p></div>;
   return <div className={styles.movementList}>
@@ -22,7 +22,9 @@ export function MovementList({ movements, onSelect }: {
         <div className={styles.routeBlock}><strong>{routeLabel(movement)}</strong><span>{movement.aircraft.livery.name}</span></div>
         <div className={styles.cardMeta}>
           <RunwayPrediction prediction={movement.runwayPrediction} />
-          <div className={styles.cardTags}><TagList tags={movement.spotter.tags} /></div>
+          <div className={styles.cardTags}>
+            <TagList tags={movement.spotterInterest.reasons} />
+          </div>
         </div>
         <span className={styles.cardArrow} aria-hidden="true">↗</span>
       </button>
