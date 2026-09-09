@@ -1,12 +1,13 @@
 import type {
   AircraftCategory,
-  AircraftMovement,
+  RankableAircraftMovement,
   Airline,
   Airport,
   MovementType,
   RunwayPrediction,
   RunwayPredictionStatus,
 } from "@spotter/domain";
+import { MockAviationDataProvider } from "@spotter/aviation-data";
 import {
   spotterInterestService,
   type ScoredAircraftMovement,
@@ -150,15 +151,39 @@ const toRunwayPrediction = (
 
 const atlTimestamp = (time: string) => `2026-08-19T${time}:00-04:00`;
 
-export const mockMovementInputs: AircraftMovement[] = seeds.map((seed, index) => {
+export const mockMovementInputs: RankableAircraftMovement[] = seeds.map((seed, index) => {
   const [movementType, scheduled, estimated, flightNumber, airlineCode,
     origin, destination, type, family, category, registration, livery] = seed;
 
+  const id = `atl-${String(index + 1).padStart(3, "0")}`;
+  const scheduledTimestamp = atlTimestamp(scheduled);
+  const estimatedTimestamp = atlTimestamp(estimated);
+
   return {
-    id: `atl-${String(index + 1).padStart(3, "0")}`,
+    id,
+    provider: "mock",
+    providerFlightId: id,
+    ident: flightNumber,
+    operatorIcao: airlineCode,
+    registration,
+    aircraftType: type,
+    originAirport: origin,
+    destinationAirport: destination,
     movementType,
-    scheduledTime: atlTimestamp(scheduled),
-    estimatedTime: atlTimestamp(estimated),
+    scheduledDepartureTime: movementType === "DEPARTURE" ? new Date(scheduledTimestamp) : null,
+    scheduledArrivalTime: movementType === "ARRIVAL" ? new Date(scheduledTimestamp) : null,
+    estimatedDepartureTime: movementType === "DEPARTURE" ? new Date(estimatedTimestamp) : null,
+    estimatedArrivalTime: movementType === "ARRIVAL" ? new Date(estimatedTimestamp) : null,
+    actualDepartureTime: null,
+    actualArrivalTime: null,
+    status: "SCHEDULED",
+    cancelled: false,
+    diverted: false,
+    providerStatus: "Mock scheduled",
+    observedAt: new Date("2026-08-19T18:00:00Z"),
+    lastUpdatedAt: null,
+    scheduledTime: scheduledTimestamp,
+    estimatedTime: estimatedTimestamp,
     flight: {
       number: flightNumber,
       airline: airlines[airlineCode],
@@ -176,6 +201,10 @@ export const mockMovementInputs: AircraftMovement[] = seeds.map((seed, index) =>
     runwayPrediction: toRunwayPrediction(predictionSeeds[index]),
   };
 });
+
+export const mockAviationDataProvider = new MockAviationDataProvider(
+  mockMovementInputs,
+);
 
 export const mockMovements: ScoredAircraftMovement[] =
   spotterInterestService.scoreMovements(mockMovementInputs);

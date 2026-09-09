@@ -1,5 +1,5 @@
 import type {
-  AircraftMovement,
+  RankableAircraftMovement,
   AircraftNotabilityTag,
   SpotterInterestFacts,
 } from "../../../domain/src/index.ts";
@@ -54,10 +54,30 @@ export function makeMovement(
   id: string,
   facts: SpotterInterestFacts,
   estimatedTime = "2026-08-19T15:00:00-04:00",
-): AircraftMovement {
+): RankableAircraftMovement {
   return {
     id,
+    provider: "mock",
+    providerFlightId: id,
+    ident: `TEST${id}`,
+    operatorIcao: "TST",
+    registration: facts.registrationRarity.registration,
+    aircraftType: facts.globalTypeRarity.variant,
+    originAirport: "KJFK",
+    destinationAirport: "KATL",
     movementType: "ARRIVAL",
+    scheduledDepartureTime: null,
+    scheduledArrivalTime: new Date(estimatedTime),
+    estimatedDepartureTime: null,
+    estimatedArrivalTime: new Date(estimatedTime),
+    actualDepartureTime: null,
+    actualArrivalTime: null,
+    status: "SCHEDULED",
+    cancelled: false,
+    diverted: false,
+    providerStatus: "Scheduled",
+    observedAt: new Date("2026-08-19T18:00:00Z"),
+    lastUpdatedAt: null,
     scheduledTime: estimatedTime,
     estimatedTime,
     flight: {

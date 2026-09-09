@@ -1,5 +1,5 @@
 import type {
-  AircraftMovement,
+  RankableAircraftMovement,
   SpotterInterestFacts,
 } from "../../domain/src/index.ts";
 import { SPOTTER_INTEREST_V0_1_CONFIG } from "./config.ts";
@@ -81,14 +81,14 @@ export class SpotterInterestService {
     };
   }
 
-  scoreMovement(movement: AircraftMovement): ScoredAircraftMovement {
+  scoreMovement(movement: RankableAircraftMovement): ScoredAircraftMovement {
     return {
       ...movement,
       spotterInterest: this.evaluate(movement.spotterFacts),
     };
   }
 
-  scoreMovements(movements: AircraftMovement[]): ScoredAircraftMovement[] {
+  scoreMovements(movements: RankableAircraftMovement[]): ScoredAircraftMovement[] {
     return movements.map((movement) => this.scoreMovement(movement));
   }
 }

@@ -7,9 +7,19 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test ../../packages/spotter-ranking/src/__tests__/aircraft-notability-scorer.test.ts ../../packages/spotter-ranking/src/__tests__/global-type-rarity-scorer.test.ts ../../packages/spotter-ranking/src/__tests__/local-type-rarity-scorer.test.ts ../../packages/spotter-ranking/src/__tests__/registration-rarity-scorer.test.ts ../../packages/spotter-ranking/src/__tests__/spotter-interest-service.test.ts",
+    "test": "pnpm run test:ranking && pnpm run test:aviation && pnpm run test:spotter-integration && pnpm run test:daily-spotlight && pnpm run test:web",
+    "test:ranking": "node --experimental-strip-types --test ../../packages/spotter-ranking/src/__tests__/aircraft-notability-scorer.test.ts ../../packages/spotter-ranking/src/__tests__/global-type-rarity-scorer.test.ts ../../packages/spotter-ranking/src/__tests__/local-type-rarity-scorer.test.ts ../../packages/spotter-ranking/src/__tests__/registration-rarity-scorer.test.ts ../../packages/spotter-ranking/src/__tests__/spotter-interest-service.test.ts",
+    "test:aviation": "node --experimental-strip-types --test ../../packages/aviation-data/src/__tests__/normalizer.test.ts ../../packages/aviation-data/src/__tests__/flightaware-client.test.ts ../../packages/aviation-data/src/__tests__/coverage-report.test.ts",
+    "test:spotter-integration": "node --experimental-strip-types --test ../../packages/spotter-interest-integration/src/__tests__/aircraft-type-normalizer.test.ts ../../packages/spotter-interest-integration/src/__tests__/spotter-interest-integration.test.ts ../../packages/spotter-interest-integration/src/__tests__/audit.test.ts",
     "typecheck": "tsc --noEmit",
-    "typecheck:ranking": "tsc --project ../../packages/spotter-ranking/tsconfig.json"
+    "typecheck:ranking": "tsc --project ../../packages/spotter-ranking/tsconfig.json",
+    "typecheck:aviation": "tsc --project ../../packages/aviation-data/tsconfig.json",
+    "typecheck:spotter-integration": "tsc --project ../../packages/spotter-interest-integration/tsconfig.json",
+    "probe:flightaware": "node --env-file-if-exists=../../.env.local --experimental-strip-types ../../packages/aviation-data/src/cli/probe-flightaware.ts",
+    "probe:spotter-interest": "node --env-file-if-exists=../../.env.local --experimental-strip-types ../../packages/spotter-interest-integration/src/cli/probe-spotter-interest.ts",
+    "test:daily-spotlight": "node --experimental-strip-types --test ../../packages/daily-spotlight/src/__tests__/daily-spotlight-service.test.ts ../../packages/daily-spotlight/src/__tests__/live-view-adapter.test.ts",
+    "test:web": "node --experimental-strip-types --test lib/server/__tests__/spotlight-config.test.ts lib/server/__tests__/flightaware-errors.test.ts",
+    "typecheck:daily-spotlight": "tsc --project ../../packages/daily-spotlight/tsconfig.json"
   },
   "dependencies": {
     "next": "16.3.1",

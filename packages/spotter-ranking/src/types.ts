@@ -5,6 +5,7 @@ import type {
   GlobalTypeRarityFacts,
   LocalTypeRarityFacts,
   RegistrationRarityFacts,
+  RankableAircraftMovement,
   SpotterInterestFacts,
 } from "../../domain/src/index.ts";
 
@@ -45,7 +46,7 @@ export interface SpotterInterestResult {
   classification: SpotterInterestClassification;
 }
 
-export type ScoredAircraftMovement = AircraftMovement & {
+export type ScoredAircraftMovement = RankableAircraftMovement & {
   spotterInterest: SpotterInterestResult;
 };
 
@@ -59,5 +60,6 @@ export type {
   GlobalTypeRarityFacts,
   LocalTypeRarityFacts,
   RegistrationRarityFacts,
+  RankableAircraftMovement,
   SpotterInterestFacts,
 };

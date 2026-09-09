@@ -1,6 +1,15 @@
 export type MovementType = "ARRIVAL" | "DEPARTURE";
 
-export type AircraftCategory = "NARROWBODY" | "WIDEBODY" | "REGIONAL";
+export type MovementStatus =
+  | "SCHEDULED"
+  | "DEPARTED"
+  | "ENROUTE"
+  | "ARRIVED"
+  | "CANCELLED"
+  | "DIVERTED"
+  | "UNKNOWN";
+
+export type AircraftCategory = "NARROWBODY" | "WIDEBODY" | "REGIONAL" | "UNKNOWN";
 
 export type AircraftNotabilityTag =
   | "SPECIAL_LIVERY"
@@ -144,11 +153,38 @@ export function getRemainingMovementCount(stats: AirportMovementStats): number {
 
 export interface AircraftMovement {
   id: string;
+  provider: "flightaware" | "mock";
+  providerFlightId: string;
+  ident: string;
+  operatorIcao: string | null;
+  registration: string | null;
+  aircraftType: string | null;
+  originAirport: string | null;
+  destinationAirport: string | null;
   movementType: MovementType;
+  scheduledDepartureTime: Date | null;
+  scheduledArrivalTime: Date | null;
+  estimatedDepartureTime: Date | null;
+  estimatedArrivalTime: Date | null;
+  actualDepartureTime: Date | null;
+  actualArrivalTime: Date | null;
+  status: MovementStatus;
+  cancelled: boolean;
+  diverted: boolean;
+  providerStatus: string | null;
+  observedAt: Date;
+  lastUpdatedAt: Date | null;
+}
+
+/**
+ * Development/UI enrichment layered onto provider-independent movement facts.
+ * Live provider records intentionally do not contain these ranking inputs yet.
+ */
+export type RankableAircraftMovement = AircraftMovement & {
   scheduledTime: string;
   estimatedTime: string;
   flight: Flight;
   aircraft: Aircraft;
   spotterFacts: SpotterInterestFacts;
   runwayPrediction?: RunwayPrediction;
-}
+};

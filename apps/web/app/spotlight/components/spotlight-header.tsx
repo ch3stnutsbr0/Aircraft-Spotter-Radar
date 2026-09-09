@@ -1,20 +1,23 @@
 import type { AirportStatusSnapshot } from "@spotter/domain";
+import type { DailySpotlightResult } from "@spotter/daily-spotlight";
 import { AirportSummary } from "./airport-summary";
+import { formatAtlantaDate, formatAtlantaTimeWithZone, formatAtlantaWindow } from "../lib/time";
 import styles from "../spotlight.module.css";
 
-export function SpotlightHeader({ total, interesting, spotlight, airportStatus }: {
-  total: number;
-  interesting: number;
-  spotlight: number;
-  airportStatus: AirportStatusSnapshot;
+export function SpotlightHeader({
+  dailySpotlight,
+  airportStatus,
+  showDataSource,
+}: {
+  dailySpotlight: DailySpotlightResult;
+  airportStatus: AirportStatusSnapshot | null;
+  showDataSource: boolean;
 }) {
-  const snapshotDate = new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "America/New_York",
-  }).format(new Date(airportStatus.asOf));
+  const movements = dailySpotlight.movements;
+  const interesting = movements.filter(
+    (item) => item.spotterInterest.classification !== "ROUTINE",
+  ).length;
+  const airportLabel = dailySpotlight.airport.replace(/^K(?=[A-Z]{3}$)/, "");
 
   return (
     <header className={styles.hero}>
@@ -23,22 +26,31 @@ export function SpotlightHeader({ total, interesting, spotlight, airportStatus }
           <span className={styles.brandMark} aria-hidden="true">ASR</span>
           <span>Aircraft Spotter Radar</span>
         </div>
-        <div className={styles.dataStatus}><span aria-hidden="true" /> Mock airport status · ATL local time</div>
+        {showDataSource && (
+          <div className={styles.dataStatus}>
+            <span aria-hidden="true" /> Data: {dailySpotlight.source} · ATL local time
+          </div>
+        )}
       </div>
       <div className={styles.heroMain}>
-        <div className={styles.airportCode} aria-label="Atlanta airport code">ATL</div>
+        <div className={styles.airportCode} aria-label="Atlanta airport code">{airportLabel}</div>
         <div className={styles.heroCopy}>
           <p className={styles.eyebrow}>Home Airport</p>
           <h1>Daily Spotlight</h1>
-          <p className={styles.date}>{snapshotDate} · 14:00–18:00 EDT</p>
+          <p className={styles.date}>
+            {formatAtlantaDate(dailySpotlight.windowStart)} · {formatAtlantaWindow(dailySpotlight.windowStart, dailySpotlight.windowEnd)}
+          </p>
+          {dailySpotlight.source === "FLIGHTAWARE" && (
+            <p className={styles.generatedAt}>Updated {formatAtlantaTimeWithZone(dailySpotlight.generatedAt)}</p>
+          )}
         </div>
         <div className={styles.heroQuestion}>
           <span>Today’s brief</span>
           <strong>What’s worth watching?</strong>
-          <p>{spotlight} standouts from {interesting} noteworthy aircraft across this {total}-movement preview.</p>
+          <p>{dailySpotlight.spotlightMovements.length} standouts from {interesting} noteworthy aircraft across this {movements.length}-movement preview.</p>
         </div>
       </div>
-      <AirportSummary status={airportStatus} />
+      {airportStatus && <AirportSummary status={airportStatus} />}
     </header>
   );
 }

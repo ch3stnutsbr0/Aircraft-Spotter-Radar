@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -20,9 +24,24 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"],
-      "@spotter/domain": ["../../packages/domain/src/index.ts"],
-      "@spotter/ranking": ["../../packages/spotter-ranking/src/index.ts"]
+      "@/*": [
+        "./*"
+      ],
+      "@spotter/domain": [
+        "../../packages/domain/src/index.ts"
+      ],
+      "@spotter/aviation-data": [
+        "../../packages/aviation-data/src/index.ts"
+      ],
+      "@spotter/ranking": [
+        "../../packages/spotter-ranking/src/index.ts"
+      ],
+      "@spotter/interest-integration": [
+        "../../packages/spotter-interest-integration/src/index.ts"
+      ],
+      "@spotter/daily-spotlight": [
+        "../../packages/daily-spotlight/src/index.ts"
+      ]
     }
   },
   "include": [
@@ -33,5 +52,7 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }

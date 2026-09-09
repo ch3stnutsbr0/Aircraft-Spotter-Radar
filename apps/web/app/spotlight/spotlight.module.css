@@ -243,3 +243,9 @@
   .detailGrid { grid-template-columns: 1fr; }
   .detailGrid .detailWide { grid-column: auto; }
 }
+
+.generatedAt { color: #8eb3c1; margin-top: 7px; font-size: 11px; }
+.dataError, .liveContextNote { margin-bottom: 28px; padding: 13px 16px; border: 1px solid #e1c9aa; background: #fff7e9; color: #654618; font-size: 12px; line-height: 1.45; }
+.dataError { display: flex; flex-wrap: wrap; align-items: baseline; gap: 7px 12px; }
+.dataError small { margin-left: auto; color: #8a7251; font-family: var(--font-geist-mono),monospace; }
+.liveContextNote { border-color: #cbdcde; background: #eef5f5; color: #3e5d68; }

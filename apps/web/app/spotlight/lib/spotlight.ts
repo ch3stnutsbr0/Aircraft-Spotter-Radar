@@ -49,10 +49,10 @@ const searchableText = (movement: ScoredAircraftMovement): string =>
     movement.flight.destination.code,
   ].filter(Boolean).join(" ").toLowerCase();
 
-export function filterAndSortMovements(
-  movements: ScoredAircraftMovement[],
+export function filterAndSortMovements<TMovement extends ScoredAircraftMovement>(
+  movements: TMovement[],
   filters: SpotlightFilters,
-): ScoredAircraftMovement[] {
+): TMovement[] {
   const search = filters.search.trim().toLowerCase();
   const route = filters.route.trim().toLowerCase();
 
