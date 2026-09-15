@@ -43,12 +43,21 @@ registration, raw aircraft-type code, operator, origin, destination, movement
 type, status, and scheduled/estimated timestamps. These fields are marked
 `LIVE` when present.
 
-The four score dimensions require facts not supplied by FlightAware. Their
-inputs are marked:
+The four score dimensions require facts not supplied by FlightAware. The
+canonical catalog is
+`packages/spotter-interest-integration/reference/spotter-reference-v0.1.json`;
+the integration package validates and indexes it once for both live and mock
+scoring. Inputs are marked:
 
 - `REFERENCE` when a strict entry exists in the existing reviewed mock/reference
   dataset;
 - `MISSING` when it does not.
+
+The catalog's `legacy-reviewed-fixture` provenance records that these values
+were migrated unchanged from the reviewed prototype fixtures. They preserve
+v0.1 behavior but require separate factual verification before they should be
+treated as authoritative aviation data. Runtime scoring consumes only the lean
+facts it needs; provenance remains in the catalog.
 
 A missing match remains visibly different from a known reference input whose
 score happens to be zero. Missing notability uses no tags, missing global fleet
@@ -155,3 +164,18 @@ It contains no headers, credentials, cookies, or environment values.
 CSV output is produced by a shared RFC-style escaping helper: fields containing
 commas, quotes, carriage returns, or newlines are quoted, and embedded quotes
 are doubled. Null and unavailable values remain empty fields.
+
+## Offline audit rescoring
+
+A saved run can be re-enriched and compared with its existing scores without
+calling AeroAPI or writing new audit files. Run from `apps/web`:
+
+~~~bash
+pnpm rescore:audit -- \
+  ~/AircraftSpotterRadar/datasets/probe-runs/flightaware/2026-08-23T214124Z_KATL
+~~~
+
+The argument may be either a run directory or its `movements.csv`. The command
+uses `run.json` to reconstruct the primary inclusive-start/exclusive-end window,
+reports current reference coverage, detects ambiguous provider IDs, compares
+against `scores.csv`, and prints the current top scores.

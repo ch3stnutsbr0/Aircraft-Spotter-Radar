@@ -20,16 +20,50 @@ export {
   type AuditStorage,
 } from "./audit-writer.ts";
 export { normalizeAircraftTypeCode } from "./aircraft-type-normalizer.ts";
-export { escapeCsvValue, serializeCsv } from "./csv.ts";
+export {
+  escapeCsvValue,
+  parseCsv,
+  parseCsvObjects,
+  serializeCsv,
+} from "./csv.ts";
+export {
+  loadReferenceCatalog,
+  normalizeReferenceAirportCode,
+  parseReferenceCatalog,
+  spotterReferenceCatalog,
+  SpotterReferenceCatalog,
+} from "./reference-catalog.ts";
 export {
   readGitVersionMetadata,
   REPOSITORY_ROOT,
 } from "./git-metadata.ts";
 export { formatSpotterInterestProbeReport } from "./report.ts";
+export {
+  compareOfflineScores,
+  formatOfflineRescoreReport,
+  rescoreAudit,
+} from "./offline-rescore.ts";
+export type {
+  OfflineRescoreResult,
+  OfflineScoreChange,
+  OfflineScoreComparison,
+} from "./offline-rescore.ts";
 export { buildScoreAuditEntries } from "./score-audit.ts";
 export {
   scoreRealMovements,
   SpotterInterestEnricher,
+} from "./spotter-interest-enricher.ts";
+export type {
+  AircraftNotabilityReference,
+  AircraftTypeReference,
+  AirportTypeStatistic,
+  ReferenceSource,
+  RegistrationHistoryReference,
+  SpotterReferenceCatalogData,
+} from "./reference-catalog.ts";
+export type {
+  SpotterInterestLookupInput,
+  SpotterInterestReferenceFacts,
 } from "./spotter-interest-enricher.ts";
 export {
   auditMovementWindow,

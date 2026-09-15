@@ -2,19 +2,16 @@ import type {
   AircraftMovement,
   SpotterInterestFacts,
 } from "../../domain/src/index.ts";
-import { SpotterInterestService } from "../../spotter-ranking/src/index.ts";
+import {
+  SPOTTER_INTEREST_V0_1_CONFIG,
+  SpotterInterestService,
+} from "../../spotter-ranking/src/index.ts";
 import { normalizeAircraftTypeCode } from "./aircraft-type-normalizer.ts";
 import {
-  ACTIVE_FLEET_BY_VARIANT,
-  ATL_MOVEMENTS_BY_VARIANT,
-  ATL_REFERENCE_AIRPORT,
-  ATL_REFERENCE_TOTAL_MOVEMENTS_90D,
-  ATL_REGISTRATION_HISTORY,
-  LOCAL_REFERENCE_WINDOW_DAYS,
-  NOTABILITY_BY_REGISTRATION,
-  REGISTRATION_REFERENCE_WINDOW_DAYS,
-  toReferenceAirportCode,
-} from "./reference-data.ts";
+  normalizeReferenceAirportCode,
+  spotterReferenceCatalog,
+  type SpotterReferenceCatalog,
+} from "./reference-catalog.ts";
 import type {
   EnrichedSpotterInterestInput,
   ScoredSpotterInterestMovement,
@@ -22,94 +19,122 @@ import type {
 
 const NEUTRAL_GLOBAL_FLEET_SIZE = 1001;
 
-function hasOwn(record: object, key: string): boolean {
-  return Object.prototype.hasOwnProperty.call(record, key);
+export interface SpotterInterestLookupInput {
+  aircraftType: string | null;
+  registration: string | null;
+  airportCode: string;
+}
+
+export interface SpotterInterestReferenceFacts {
+  facts: SpotterInterestFacts;
+  sources: EnrichedSpotterInterestInput["sources"];
+  aircraftTypeNormalization: EnrichedSpotterInterestInput["aircraftTypeNormalization"];
 }
 
 export class SpotterInterestEnricher {
+  private readonly catalog: SpotterReferenceCatalog;
+
+  constructor(catalog: SpotterReferenceCatalog = spotterReferenceCatalog) {
+    this.catalog = catalog;
+  }
+
+  lookup(input: SpotterInterestLookupInput): SpotterInterestReferenceFacts {
+    const registration = input.registration?.trim().toUpperCase() || null;
+    const typeNormalization = normalizeAircraftTypeCode(
+      input.aircraftType,
+      this.catalog,
+    );
+    const referenceVariant = typeNormalization.referenceVariant;
+    const referenceAirport = normalizeReferenceAirportCode(input.airportCode);
+    const notability = registration
+      ? this.catalog.findNotability(registration)
+      : undefined;
+    const globalType = referenceVariant
+      ? this.catalog.findGlobalType(referenceVariant)
+      : undefined;
+    const localType = referenceVariant
+      ? this.catalog.findAirportType(referenceAirport, referenceVariant)
+      : undefined;
+    const registrationHistory = registration
+      ? this.catalog.findRegistrationHistory(referenceAirport, registration)
+      : undefined;
+
+    return {
+      facts: {
+        notability: {
+          tags: notability ? [...notability.tags] : [],
+          ...(notability?.curatedScores
+            ? { curatedScores: { ...notability.curatedScores } }
+            : {}),
+        },
+        globalTypeRarity: globalType ?? {
+          variant: referenceVariant ?? typeNormalization.rawCode ?? "UNKNOWN",
+          // Unknown fleet size must be numerically neutral, not treated as rare.
+          activeGlobalFleetSize: NEUTRAL_GLOBAL_FLEET_SIZE,
+        },
+        localTypeRarity: localType
+          ? {
+              airportCode: localType.airportCode,
+              variant: localType.variant,
+              historicalWindowDays: localType.historicalWindowDays,
+              typeMovements: localType.typeMovements,
+              totalMovements: localType.totalMovements,
+              dataQuality: localType.dataQuality,
+            }
+          : {
+              airportCode: referenceAirport,
+              variant: referenceVariant ?? typeNormalization.rawCode ?? "UNKNOWN",
+              historicalWindowDays:
+                SPOTTER_INTEREST_V0_1_CONFIG.localTypeRarity.historicalWindowDays,
+              typeMovements: 0,
+              totalMovements: 0,
+              dataQuality: "INSUFFICIENT",
+            },
+        registrationRarity: registrationHistory
+          ? {
+              airportCode: registrationHistory.airportCode,
+              registration: registrationHistory.registration,
+              historicalWindowDays: registrationHistory.historicalWindowDays,
+              visits: registrationHistory.visits,
+              daysSinceLastVisit: registrationHistory.daysSinceLastVisit,
+            }
+          : {
+              airportCode: referenceAirport,
+              // An unknown real registration must not become a fabricated first visit.
+              registration: null,
+              historicalWindowDays:
+                SPOTTER_INTEREST_V0_1_CONFIG.registrationRarity.historicalWindowDays,
+              visits: 0,
+              daysSinceLastVisit: null,
+            },
+      },
+      sources: {
+        movement: "LIVE",
+        aircraftType: input.aircraftType ? "LIVE" : "MISSING",
+        registration: registration ? "LIVE" : "MISSING",
+        notability: notability ? "REFERENCE" : "MISSING",
+        globalTypeRarity: globalType ? "REFERENCE" : "MISSING",
+        localTypeRarity: localType ? "REFERENCE" : "MISSING",
+        registrationRarity: registrationHistory ? "REFERENCE" : "MISSING",
+      },
+      aircraftTypeNormalization: typeNormalization,
+    };
+  }
+
   enrich(
     movement: AircraftMovement,
     airportCode: string,
   ): EnrichedSpotterInterestInput {
-    const registration = movement.registration?.trim().toUpperCase() || null;
-    const typeNormalization = normalizeAircraftTypeCode(movement.aircraftType);
-    const referenceVariant = typeNormalization.referenceVariant;
-    const referenceAirport = toReferenceAirportCode(airportCode);
-    const hasAtlReference = referenceAirport === ATL_REFERENCE_AIRPORT;
-
-    const notabilityMatch = registration !== null
-      && hasOwn(NOTABILITY_BY_REGISTRATION, registration);
-    const globalTypeMatch = referenceVariant !== null
-      && hasOwn(ACTIVE_FLEET_BY_VARIANT, referenceVariant);
-    const localTypeMatch = hasAtlReference
-      && referenceVariant !== null
-      && hasOwn(ATL_MOVEMENTS_BY_VARIANT, referenceVariant);
-    const registrationMatch = hasAtlReference
-      && registration !== null
-      && hasOwn(ATL_REGISTRATION_HISTORY, registration);
-
-    const facts: SpotterInterestFacts = {
-      notability: {
-        tags: notabilityMatch
-          ? [...NOTABILITY_BY_REGISTRATION[registration]]
-          : [],
-      },
-      globalTypeRarity: {
-        variant: referenceVariant ?? typeNormalization.rawCode ?? "UNKNOWN",
-        // Unknown fleet size must be numerically neutral, not treated as rare.
-        activeGlobalFleetSize: globalTypeMatch
-          ? ACTIVE_FLEET_BY_VARIANT[referenceVariant]
-          : NEUTRAL_GLOBAL_FLEET_SIZE,
-      },
-      localTypeRarity: localTypeMatch
-        ? {
-            airportCode: referenceAirport,
-            variant: referenceVariant,
-            historicalWindowDays: LOCAL_REFERENCE_WINDOW_DAYS,
-            typeMovements: ATL_MOVEMENTS_BY_VARIANT[referenceVariant],
-            totalMovements: ATL_REFERENCE_TOTAL_MOVEMENTS_90D,
-            dataQuality: "SUFFICIENT",
-          }
-        : {
-            airportCode: referenceAirport,
-            variant: referenceVariant ?? typeNormalization.rawCode ?? "UNKNOWN",
-            historicalWindowDays: LOCAL_REFERENCE_WINDOW_DAYS,
-            typeMovements: 0,
-            totalMovements: 0,
-            dataQuality: "INSUFFICIENT",
-          },
-      registrationRarity: registrationMatch
-        ? {
-            airportCode: referenceAirport,
-            registration,
-            historicalWindowDays: REGISTRATION_REFERENCE_WINDOW_DAYS,
-            ...ATL_REGISTRATION_HISTORY[registration],
-          }
-        : {
-            airportCode: referenceAirport,
-            // Passing an unknown real registration with zero visits would
-            // fabricate a first visit. Null is the scorer's neutral contract.
-            registration: null,
-            historicalWindowDays: REGISTRATION_REFERENCE_WINDOW_DAYS,
-            visits: 0,
-            daysSinceLastVisit: null,
-          },
-    };
+    const reference = this.lookup({
+      aircraftType: movement.aircraftType,
+      registration: movement.registration,
+      airportCode,
+    });
 
     return {
       movement,
-      airportCode: referenceAirport,
-      facts,
-      sources: {
-        movement: "LIVE",
-        aircraftType: movement.aircraftType ? "LIVE" : "MISSING",
-        registration: registration ? "LIVE" : "MISSING",
-        notability: notabilityMatch ? "REFERENCE" : "MISSING",
-        globalTypeRarity: globalTypeMatch ? "REFERENCE" : "MISSING",
-        localTypeRarity: localTypeMatch ? "REFERENCE" : "MISSING",
-        registrationRarity: registrationMatch ? "REFERENCE" : "MISSING",
-      },
-      aircraftTypeNormalization: typeNormalization,
+      airportCode: normalizeReferenceAirportCode(airportCode),
+      ...reference,
     };
   }
 }

@@ -6,13 +6,13 @@ import type {
   MovementType,
   RunwayPrediction,
   RunwayPredictionStatus,
-} from "@spotter/domain";
-import { MockAviationDataProvider } from "@spotter/aviation-data";
+} from "../../../packages/domain/src/index.ts";
+import { MockAviationDataProvider } from "../../../packages/aviation-data/src/index.ts";
 import {
   spotterInterestService,
   type ScoredAircraftMovement,
-} from "@spotter/ranking";
-import { buildMockSpotterFacts } from "./mock-spotter-facts";
+} from "../../../packages/spotter-ranking/src/index.ts";
+import { SpotterInterestEnricher } from "../../../packages/spotter-interest-integration/src/index.ts";
 
 const airportCities: Record<string, string> = {
   AMS: "Amsterdam", ANC: "Anchorage", ATL: "Atlanta", BOS: "Boston",
@@ -150,6 +150,7 @@ const toRunwayPrediction = (
   : undefined;
 
 const atlTimestamp = (time: string) => `2026-08-19T${time}:00-04:00`;
+const referenceEnricher = new SpotterInterestEnricher();
 
 export const mockMovementInputs: RankableAircraftMovement[] = seeds.map((seed, index) => {
   const [movementType, scheduled, estimated, flightNumber, airlineCode,
@@ -197,7 +198,11 @@ export const mockMovementInputs: RankableAircraftMovement[] = seeds.map((seed, i
       registration,
       livery: { name: livery ?? "Standard fleet livery", isSpecial: Boolean(livery) },
     },
-    spotterFacts: buildMockSpotterFacts({ variant: type, registration }),
+    spotterFacts: referenceEnricher.lookup({
+      aircraftType: type,
+      registration,
+      airportCode: "KATL",
+    }).facts,
     runwayPrediction: toRunwayPrediction(predictionSeeds[index]),
   };
 });
