@@ -1,15 +1,27 @@
 import {
   DailySpotlightError,
+  LegacyRuleRanker,
+  type MovementRanker,
   type SpotlightDataSource,
 } from "../../../../packages/daily-spotlight/src/index.ts";
 
 export interface SpotlightRuntimeConfig {
   dataSource: SpotlightDataSource;
+  ranker: "legacy-rule";
   airport: "KATL";
   windowMinutes: number;
   cacheSeconds: number;
   maxPagesPerEndpoint: number;
   auditFreshLiveRuns: boolean;
+}
+
+export function createSpotlightRanker(
+  ranker: SpotlightRuntimeConfig["ranker"],
+): MovementRanker {
+  switch (ranker) {
+    case "legacy-rule":
+      return new LegacyRuleRanker();
+  }
 }
 
 const numberSetting = (
@@ -51,9 +63,20 @@ export function readSpotlightConfig(
       "SPOTLIGHT_DATA_SOURCE must be mock or flightaware.",
     );
   }
+  const rawRanker = environment.SPOTLIGHT_RANKER?.trim().toLowerCase()
+    || "legacy-rule";
+  if (rawRanker !== "legacy-rule") {
+    throw new DailySpotlightError(
+      "CONFIGURATION",
+      rawRanker === "ai"
+        ? "SPOTLIGHT_RANKER=ai is reserved but not implemented. Use legacy-rule."
+        : "SPOTLIGHT_RANKER must be legacy-rule.",
+    );
+  }
 
   return {
     dataSource: rawSource === "mock" ? "MOCK" : "FLIGHTAWARE",
+    ranker: rawRanker,
     airport: "KATL",
     windowMinutes: numberSetting(
       environment.SPOTLIGHT_WINDOW_MINUTES,

@@ -17,7 +17,7 @@ export function MovementList({ movements, onSelect }: {
         <div className={styles.aircraftBlock}><strong>{movement.aircraft.type}</strong><span className={movement.aircraft.registration ? "" : styles.pendingRegistration}>{movement.aircraft.registration ?? "Registration unavailable"}</span></div>
         <div className={styles.flightBlock}><strong>{movement.flight.airline.name}</strong><span>{movement.flight.number}</span></div>
         <div className={styles.routeBlock}><strong>{routeLabel(movement)}</strong><span>{movement.aircraft.livery.name}</span></div>
-        <div className={styles.cardMeta}><RunwayPrediction prediction={movement.runwayPrediction} /><div className={styles.cardTags}><TagList tags={movement.spotterInterest.reasons} /></div></div>
+        <div className={styles.cardMeta}><RunwayPrediction prediction={movement.runwayPrediction} /><div className={styles.cardTags}><TagList tags={movement.ranking.reasons} /></div></div>
         <span className={styles.cardArrow} aria-hidden="true">↗</span>
       </button>
     ))}

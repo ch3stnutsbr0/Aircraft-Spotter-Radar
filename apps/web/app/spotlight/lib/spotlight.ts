@@ -1,6 +1,5 @@
 import type { MovementType } from "@spotter/domain";
-import type { ScoredAircraftMovement } from "@spotter/ranking";
-import { getSpotterScore } from "@spotter/ranking";
+import type { DailySpotlightMovement } from "@spotter/daily-spotlight";
 
 export type MovementFilter = "ALL" | MovementType;
 export type SortMode = "TIME" | "INTEREST";
@@ -34,10 +33,10 @@ export function formatTime(timestamp: string): string {
   }).format(new Date(timestamp));
 }
 
-export const routeLabel = (movement: ScoredAircraftMovement) =>
+export const routeLabel = (movement: DailySpotlightMovement) =>
   `${movement.flight.origin.code} → ${movement.flight.destination.code}`;
 
-const searchableText = (movement: ScoredAircraftMovement): string =>
+const searchableText = (movement: DailySpotlightMovement): string =>
   [
     movement.aircraft.registration,
     movement.aircraft.type,
@@ -49,7 +48,7 @@ const searchableText = (movement: ScoredAircraftMovement): string =>
     movement.flight.destination.code,
   ].filter(Boolean).join(" ").toLowerCase();
 
-export function filterAndSortMovements<TMovement extends ScoredAircraftMovement>(
+export function filterAndSortMovements<TMovement extends DailySpotlightMovement>(
   movements: TMovement[],
   filters: SpotlightFilters,
 ): TMovement[] {
@@ -63,14 +62,14 @@ export function filterAndSortMovements<TMovement extends ScoredAircraftMovement>
     if (route && !movement.flight.origin.code.toLowerCase().includes(route) && !movement.flight.destination.code.toLowerCase().includes(route)) return false;
     if (
       filters.interestingOnly
-      && movement.spotterInterest.classification === "ROUTINE"
+      && movement.ranking.tier === "ROUTINE"
     ) return false;
     return !search || searchableText(movement).includes(search);
   });
 
   return [...filtered].sort((first, second) => {
     if (filters.sort === "INTEREST") {
-      const difference = getSpotterScore(second) - getSpotterScore(first);
+      const difference = second.ranking.displayScore - first.ranking.displayScore;
       if (difference) return difference;
     }
     return first.estimatedTime.localeCompare(second.estimatedTime);

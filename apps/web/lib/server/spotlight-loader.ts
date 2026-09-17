@@ -1,16 +1,19 @@
 import { unstable_cache } from "next/cache";
-import type { AirportStatusSnapshot, RankableAircraftMovement } from "@spotter/domain";
+import type { AirportStatusSnapshot } from "@spotter/domain";
 import {
   DailySpotlightError,
   DailySpotlightService,
   type DailySpotlightResult,
   type SpotlightDataSource,
 } from "@spotter/daily-spotlight";
-import { spotterInterestService } from "@spotter/ranking";
 import { mockAtlAirportStatus } from "@/lib/mock-airport-status";
 import { mockMovementInputs } from "@/lib/mock-movements";
 import { generateFreshFlightAwareSpotlight } from "./flightaware-spotlight";
-import { readSpotlightConfig, type SpotlightRuntimeConfig } from "./spotlight-config";
+import {
+  createSpotlightRanker,
+  readSpotlightConfig,
+  type SpotlightRuntimeConfig,
+} from "./spotlight-config";
 
 export interface SpotlightPageData {
   dailySpotlight: DailySpotlightResult;
@@ -27,6 +30,7 @@ function liveLoader(config: SpotlightRuntimeConfig): () => Promise<DailySpotligh
     config.airport,
     config.windowMinutes,
     config.maxPagesPerEndpoint,
+    config.ranker,
     config.auditFreshLiveRuns ? "audit" : "no-audit",
     config.cacheSeconds,
   ].join(":");
@@ -42,20 +46,18 @@ function liveLoader(config: SpotlightRuntimeConfig): () => Promise<DailySpotligh
   return loader;
 }
 
-async function loadMockSpotlight(): Promise<DailySpotlightResult> {
+async function loadMockSpotlight(
+  config: SpotlightRuntimeConfig,
+): Promise<DailySpotlightResult> {
   const service = new DailySpotlightService({
     source: "MOCK",
+    ranker: createSpotlightRanker(config.ranker),
     async getMovements() {
       return {
         movements: mockMovementInputs,
         observedAt: new Date(mockAtlAirportStatus.asOf),
         diagnostics: { fetchedMovements: mockMovementInputs.length },
       };
-    },
-    enrichAndScore(movements) {
-      return spotterInterestService.scoreMovements(
-        movements as RankableAircraftMovement[],
-      );
     },
   });
 
@@ -100,7 +102,7 @@ export async function loadSpotlightPageData(): Promise<SpotlightPageData> {
     config = readSpotlightConfig();
     source = config.dataSource;
     const dailySpotlight = source === "MOCK"
-      ? await loadMockSpotlight()
+      ? await loadMockSpotlight(config)
       : await liveLoader(config)();
     return {
       dailySpotlight,

@@ -25,7 +25,7 @@ export function SpotlightHighlights({ movements, onSelect }: {
             <div className={styles.highlightAirline}>{movement.flight.airline.name}</div>
             <div className={styles.highlightRoute}>{routeLabel(movement)}</div>
             <div className={styles.highlightRunway}><RunwayPrediction prediction={movement.runwayPrediction} /></div>
-            <div className={styles.highlightTags}><TagList tags={movement.spotterInterest.reasons} /></div>
+            <div className={styles.highlightTags}><TagList tags={movement.ranking.reasons} /></div>
           </button>
         ))}
       </div> : (

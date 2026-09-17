@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { SPOTTER_REASON_LABELS } from "@spotter/ranking";
 import type { DailySpotlightMovement } from "@spotter/daily-spotlight";
 import { MovementTypeIndicator } from "./movement-type-indicator";
 import { RunwayPrediction } from "./runway-prediction";
@@ -34,7 +33,7 @@ export function MovementDetail({ movement, onClose }: {
         <div className={styles.detailRegistration}>{movement.aircraft.registration ?? "Registration unavailable"}</div>
         <div className={styles.detailRoute}>{routeLabel(movement)}</div>
         <div className={styles.detailRunway}><RunwayPrediction prediction={movement.runwayPrediction} showSource /></div>
-        <div className={styles.detailTags}><TagList tags={movement.spotterInterest.reasons} /></div>
+        <div className={styles.detailTags}><TagList tags={movement.ranking.reasons} /></div>
         <dl className={styles.detailGrid}>
           <div><dt>Airline / operator</dt><dd>{movement.flight.airline.name}</dd></div>
           <div><dt>Flight</dt><dd>{movement.flight.number}</dd></div>
@@ -52,8 +51,8 @@ export function MovementDetail({ movement, onClose }: {
         </dl>
         <div className={styles.whyHighlighted}>
           <span>Why it’s highlighted</span>
-          <p>{movement.spotterInterest.reasons.length
-            ? movement.spotterInterest.reasons.map((reason) => SPOTTER_REASON_LABELS[reason]).join(" · ")
+          <p>{movement.ranking.reasons.length
+            ? movement.ranking.reasons.map((reason) => reason.label).join(" · ")
             : "This is routine traffic with no v0.1 spotter-interest reasons."}</p>
         </div>
         {process.env.NODE_ENV === "development" && <SpotterInterestDebug movement={movement} />}

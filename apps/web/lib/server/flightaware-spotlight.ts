@@ -6,7 +6,6 @@ import {
 import {
   DailySpotlightError,
   DailySpotlightService,
-  toDailySpotlightMovement,
   type DailySpotlightMovement,
   type DailySpotlightResult,
 } from "@spotter/daily-spotlight";
@@ -17,12 +16,11 @@ import {
   createRunId,
   readGitVersionMetadata,
   saveAuditRun,
-  scoreRealMovements,
   type AuditedMovement,
   type ScoredSpotterInterestMovement,
 } from "@spotter/interest-integration";
 import type { SpotlightRuntimeConfig } from "./spotlight-config";
-import { readFlightAwareApiKey } from "./spotlight-config";
+import { createSpotlightRanker, readFlightAwareApiKey } from "./spotlight-config";
 import { toDailySpotlightProviderError } from "./provider-errors";
 
 interface LiveAuditContext {
@@ -38,6 +36,12 @@ function asAuditScoredMovement(
     throw new DailySpotlightError(
       "INTEGRATION_FAILURE",
       "Live enrichment provenance is unavailable for audit output.",
+    );
+  }
+  if (!movement.spotterInterest || !movement.spotterFacts) {
+    throw new DailySpotlightError(
+      "INTEGRATION_FAILURE",
+      "The active ranker does not expose legacy feature and score data for audit output.",
     );
   }
   return {
@@ -87,6 +91,7 @@ export async function generateFreshFlightAwareSpotlight(
 
   const service = new DailySpotlightService({
     source: "FLIGHTAWARE",
+    ranker: createSpotlightRanker(config.ranker),
     async getMovements(query) {
       const window = buildProbeWindow({
         primaryStart: query.start,
@@ -123,9 +128,6 @@ export async function generateFreshFlightAwareSpotlight(
           truncated: providerResult.diagnostics.resultsTruncated,
         },
       };
-    },
-    enrichAndScore(movements, airport) {
-      return scoreRealMovements(movements, airport).map(toDailySpotlightMovement);
     },
     async afterFreshGeneration({ scoredMovements }) {
       const context: LiveAuditContext | null = auditContext;

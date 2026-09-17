@@ -18,9 +18,10 @@
     "probe:flightaware": "node --env-file-if-exists=../../.env.local --experimental-strip-types ../../packages/aviation-data/src/cli/probe-flightaware.ts",
     "probe:spotter-interest": "node --env-file-if-exists=../../.env.local --experimental-strip-types ../../packages/spotter-interest-integration/src/cli/probe-spotter-interest.ts",
     "rescore:audit": "node --experimental-strip-types ../../packages/spotter-interest-integration/src/cli/rescore-audit.ts",
-    "test:daily-spotlight": "node --experimental-strip-types --test ../../packages/daily-spotlight/src/__tests__/daily-spotlight-service.test.ts ../../packages/daily-spotlight/src/__tests__/live-view-adapter.test.ts",
+    "test:daily-spotlight": "node --experimental-strip-types --test ../../packages/daily-spotlight/src/__tests__/daily-spotlight-service.test.ts ../../packages/daily-spotlight/src/__tests__/legacy-rule-ranker.test.ts ../../packages/daily-spotlight/src/__tests__/live-view-adapter.test.ts",
     "test:web": "node --experimental-strip-types --test lib/server/__tests__/spotlight-config.test.ts lib/server/__tests__/flightaware-errors.test.ts lib/__tests__/mock-movements.test.ts",
-    "typecheck:daily-spotlight": "tsc --project ../../packages/daily-spotlight/tsconfig.json"
+    "typecheck:daily-spotlight": "tsc --project ../../packages/daily-spotlight/tsconfig.json",
+    "typecheck:ai": "tsc --project ../../packages/spotter-ai/tsconfig.json"
   },
   "dependencies": {
     "next": "16.3.1",

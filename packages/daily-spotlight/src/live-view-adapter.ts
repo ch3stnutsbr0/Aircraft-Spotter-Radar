@@ -5,7 +5,8 @@ import type {
   RankableAircraftMovement,
 } from "../../domain/src/index.ts";
 import type { ScoredSpotterInterestMovement } from "../../spotter-interest-integration/src/types.ts";
-import type { DailySpotlightMovement } from "./types.ts";
+import type { SpotterInterestResult } from "../../spotter-ranking/src/index.ts";
+import type { SpotlightMovementView } from "./types.ts";
 
 const WIDEBODY_PREFIXES = ["A300", "A310", "A330", "A340", "A350", "A380", "B747", "B767", "B777", "B787", "DC10", "MD11"];
 const REGIONAL_PREFIXES = ["CRJ", "E135", "E145", "E170", "E175", "E190", "E195"];
@@ -61,7 +62,7 @@ function relevantTime(
 
 export function toDailySpotlightMovement(
   item: ScoredSpotterInterestMovement,
-): DailySpotlightMovement {
+): SpotlightMovementView & { spotterInterest: SpotterInterestResult } {
   const movement = item.movement;
   const displayType = movement.aircraftType ?? "Type unavailable";
   const normalizedType = item.aircraftTypeNormalization.referenceVariant

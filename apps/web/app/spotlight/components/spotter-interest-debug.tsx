@@ -19,6 +19,7 @@ export function SpotterInterestDebug({
   movement: DailySpotlightMovement;
 }) {
   const result = movement.spotterInterest;
+  if (!result) return null;
   const dimensionKeys = Object.keys(dimensionLabels) as Array<keyof SpotterInterestDimensions>;
 
   return (

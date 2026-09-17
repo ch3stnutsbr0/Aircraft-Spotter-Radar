@@ -1,4 +1,3 @@
-import { SPOTTER_INTEREST_V0_1_CONFIG } from "../../spotter-ranking/src/index.ts";
 import { DailySpotlightError } from "./errors.ts";
 import type {
   DailySpotlightDependencies,
@@ -21,25 +20,15 @@ function validateQuery(query: DailySpotlightQuery): void {
   }
 }
 
-function rankMovements(
-  movements: readonly DailySpotlightMovement[],
-): DailySpotlightMovement[] {
-  return [...movements].sort((first, second) => {
-    const scoreDifference = second.spotterInterest.score - first.spotterInterest.score;
-    return scoreDifference || first.estimatedTime.localeCompare(second.estimatedTime);
-  });
-}
+const MAXIMUM_SPOTLIGHT_COUNT = 5;
 
 function selectSpotlight(
   movements: readonly DailySpotlightMovement[],
 ): DailySpotlightMovement[] {
   const seenAircraft = new Set<string>();
 
-  return rankMovements(movements)
-    .filter((movement) =>
-      movement.spotterInterest.score
-        >= SPOTTER_INTEREST_V0_1_CONFIG.thresholds.spotlight
-    )
+  return movements
+    .filter((movement) => movement.ranking.tier === "SPOTLIGHT")
     .filter((movement) => {
       const identity = movement.aircraft.registration
         ? `registration:${movement.aircraft.registration.toUpperCase()}`
@@ -48,7 +37,7 @@ function selectSpotlight(
       seenAircraft.add(identity);
       return true;
     })
-    .slice(0, SPOTTER_INTEREST_V0_1_CONFIG.maximumSpotlightCount);
+    .slice(0, MAXIMUM_SPOTLIGHT_COUNT);
 }
 
 export class DailySpotlightService {
@@ -74,11 +63,15 @@ export class DailySpotlightService {
       );
     }
 
-    let scoredMovements;
+    let rankedMovements;
     try {
-      scoredMovements = await this.dependencies.enrichAndScore(
+      rankedMovements = await this.dependencies.ranker.rank(
         batch.movements,
-        airport,
+        {
+          airport,
+          windowStart: query.start,
+          windowEnd: query.end,
+        },
       );
     } catch (error) {
       if (error instanceof DailySpotlightError) throw error;
@@ -89,23 +82,25 @@ export class DailySpotlightService {
       );
     }
 
-    if (scoredMovements.length !== batch.movements.length) {
+    if (rankedMovements.length !== batch.movements.length) {
       throw new DailySpotlightError(
         "INTEGRATION_FAILURE",
-        "Spotlight enrichment must preserve the complete movement list.",
+        "The movement ranker must preserve the complete movement list.",
       );
     }
+
+    const ordered = [...rankedMovements].sort((first, second) => first.rank - second.rank);
+    const ranked: DailySpotlightMovement[] = ordered.map(({ movement, ...ranking }) => ({
+      ...movement,
+      ranking,
+      movementRank: ranking.rank,
+    }));
 
     await this.dependencies.afterFreshGeneration?.({
       query: normalizedQuery,
       batch,
-      scoredMovements,
+      scoredMovements: ranked,
     });
-
-    const ranked = rankMovements(scoredMovements).map((movement, index) => ({
-      ...movement,
-      movementRank: index + 1,
-    }));
     const spotlightMovements = selectSpotlight(ranked);
 
     return {

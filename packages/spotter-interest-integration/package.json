@@ -1,5 +1,6 @@
 {
   "name": "@spotter/interest-integration",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "description": "Deterministic enrichment, reference lookup, and feature construction"
 }

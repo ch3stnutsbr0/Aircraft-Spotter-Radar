@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { AircraftMovement, RankableAircraftMovement } from "../../../domain/src/index.ts";
-import { spotterInterestService } from "../../../spotter-ranking/src/index.ts";
+import type { RankableAircraftMovement } from "../../../domain/src/index.ts";
 import { makeFacts, makeMovement } from "../../../spotter-ranking/src/__tests__/fixtures.ts";
 import { makeRealMovement } from "../../../spotter-interest-integration/src/__tests__/fixtures.ts";
-import { scoreRealMovements } from "../../../spotter-interest-integration/src/index.ts";
-import { DailySpotlightError, DailySpotlightService, toDailySpotlightMovement } from "../index.ts";
+import {
+  DailySpotlightError,
+  DailySpotlightService,
+  LegacyRuleRanker,
+  type MovementRanker,
+} from "../index.ts";
 
 const query = {
   airport: "KATL",
@@ -17,15 +20,13 @@ const query = {
 function mockService(movements: RankableAircraftMovement[]) {
   return new DailySpotlightService({
     source: "MOCK",
+    ranker: new LegacyRuleRanker(),
     async getMovements() {
       return {
         movements,
         observedAt: new Date("2026-08-23T15:00:00Z"),
         diagnostics: { fetchedMovements: movements.length },
       };
-    },
-    enrichAndScore(items) {
-      return spotterInterestService.scoreMovements(items as RankableAircraftMovement[]);
     },
   });
 }
@@ -47,11 +48,9 @@ test("a normalized FlightAware fixture is enriched, scored, and ranked", async (
   ];
   const service = new DailySpotlightService({
     source: "FLIGHTAWARE",
+    ranker: new LegacyRuleRanker(),
     async getMovements() {
       return { movements: real, observedAt: query.start, diagnostics: { fetchedMovements: 2 } };
-    },
-    enrichAndScore(items, airport) {
-      return scoreRealMovements(items, airport).map(toDailySpotlightMovement);
     },
   });
   const result = await service.generate(query);
@@ -72,17 +71,15 @@ test("missing real enrichment stays visible and safe", async () => {
   const real = makeRealMovement({ registration: null, aircraftType: "ZZZZ" });
   const service = new DailySpotlightService({
     source: "FLIGHTAWARE",
+    ranker: new LegacyRuleRanker(),
     async getMovements() {
       return { movements: [real], observedAt: query.start, diagnostics: { fetchedMovements: 1 } };
-    },
-    enrichAndScore(items, airport) {
-      return scoreRealMovements(items, airport).map(toDailySpotlightMovement);
     },
   });
   const result = await service.generate(query);
   assert.equal(result.movements[0].enrichmentSources?.notability, "MISSING");
   assert.equal(result.movements[0].enrichmentSources?.registrationRarity, "MISSING");
-  assert.equal(result.movements[0].spotterInterest.score, 0);
+  assert.equal(result.movements[0].spotterInterest?.score, 0);
 });
 
 test("Spotlight aircraft are deduplicated by registration without filling", async () => {
@@ -105,8 +102,8 @@ test("Spotlight aircraft are deduplicated by registration without filling", asyn
 test("provider failures become a controlled application error", async () => {
   const service = new DailySpotlightService({
     source: "FLIGHTAWARE",
+    ranker: new LegacyRuleRanker(),
     async getMovements(): Promise<never> { throw new Error("network detail"); },
-    enrichAndScore(_items: readonly AircraftMovement[]) { return []; },
   });
   await assert.rejects(
     service.generate(query),
@@ -120,10 +117,43 @@ test("a scorer cannot silently drop movements", async () => {
   const movement = makeMovement("one", makeFacts());
   const service = new DailySpotlightService({
     source: "MOCK",
+    ranker: { async rank() { return []; } },
     async getMovements() {
       return { movements: [movement], observedAt: query.start, diagnostics: { fetchedMovements: 1 } };
     },
-    enrichAndScore() { return []; },
   });
   await assert.rejects(service.generate(query), /preserve the complete movement list/);
+});
+
+test("DailySpotlightService uses the supplied ranker abstraction", async () => {
+  const movement = makeMovement("one", makeFacts());
+  let called = false;
+  const ranker: MovementRanker = {
+    async rank(items, context) {
+      called = true;
+      assert.equal(items[0], movement);
+      assert.equal(context.airport, "KATL");
+      return [{
+        movement,
+        rank: 1,
+        score: 77,
+        displayScore: 77,
+        tier: "INTERESTING",
+        reasons: [{ code: "FAKE", label: "Fake ranker reason" }],
+        rankerId: "test-fake",
+      }];
+    },
+  };
+  const service = new DailySpotlightService({
+    source: "MOCK",
+    ranker,
+    async getMovements() {
+      return { movements: [movement], observedAt: query.start, diagnostics: { fetchedMovements: 1 } };
+    },
+  });
+
+  const result = await service.generate(query);
+  assert.equal(called, true);
+  assert.equal(result.movements[0].ranking.rankerId, "test-fake");
+  assert.equal(result.movements[0].ranking.displayScore, 77);
 });

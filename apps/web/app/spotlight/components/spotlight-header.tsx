@@ -15,7 +15,7 @@ export function SpotlightHeader({
 }) {
   const movements = dailySpotlight.movements;
   const interesting = movements.filter(
-    (item) => item.spotterInterest.classification !== "ROUTINE",
+    (item) => item.ranking.tier !== "ROUTINE",
   ).length;
   const airportLabel = dailySpotlight.airport.replace(/^K(?=[A-Z]{3}$)/, "");
 

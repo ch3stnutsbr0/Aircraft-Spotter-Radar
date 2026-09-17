@@ -1,5 +1,6 @@
 {
   "name": "@spotter/ranking",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "description": "Legacy rule-based ranking baseline and fallback"
 }
