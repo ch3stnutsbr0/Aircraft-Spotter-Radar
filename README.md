@@ -1,5 +1,9 @@
 # Aircraft Spotter Radar
 
+## Notes
+This is a legacy version of this project. It was deisgned based on a rule-based scoring system.
+Last modified - Sept. 17, 2026
+
 ## Project
 
 Aircraft spotting assistant for aviation photographers and plane spotters.
